@@ -97,27 +97,7 @@ namespace SoulsFormats
                 ArgData = args;
             }
 
-            /// <summary>
-            /// Creates a new Instruction with the specified bank, id, layer mask, and args.
-            /// </summary>
-            public Instruction(int bank, int id, uint layerMask, IEnumerable<object> args)
-            {
-                Bank = bank;
-                ID = id;
-                Layer = layerMask;
-                PackArgs(args);
-            }
-
-            /// <summary>
-            /// Creates a new Instruction with the specified bank, id, layer mask, and args.
-            /// </summary>
-            public Instruction(int bank, int id, uint layerMask, params object[] args)
-            {
-                Bank = bank;
-                ID = id;
-                Layer = layerMask;
-                PackArgs(args);
-            }
+            // Other `args` type constructors removed due to ambiguity.
 
             internal Instruction(BinaryReaderEx br, Game format, Offsets offsets)
             {

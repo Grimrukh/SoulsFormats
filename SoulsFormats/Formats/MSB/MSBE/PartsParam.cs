@@ -758,14 +758,14 @@ namespace SoulsFormats
             private protected virtual void WriteUnk11(BinaryWriterEx bw)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(WriteUnk11)}.");
 
-            internal virtual void GetNames(MSBE msb, Entries entries)
+            internal virtual void GetNames(Entries entries)
             {
-                ModelName = MSB.FindName(entries.Models, ModelIndex);
+                ModelName = MSB.FindName(entries.Models.Names, ModelIndex);
             }
 
-            internal virtual void GetIndices(MSBE msb, Entries entries)
+            internal virtual void GetIndices(Entries entries)
             {
-                ModelIndex = MSB.FindIndex(this, entries.Models, ModelName);
+                ModelIndex = MSB.FindIndex(this, entries.Models.Indices, ModelName);
             }
 
             /// <summary>
@@ -1186,7 +1186,7 @@ namespace SoulsFormats
                 public int Unk18 { get; set; }
 
                 /// <summary>
-                /// Creates an UnkStruct7 with default values.
+                /// Creates a GrassConfig with default values.
                 /// </summary>
                 public GrassConfig() { }
 
@@ -1235,7 +1235,7 @@ namespace SoulsFormats
                 public int Unk00 { get; set; }
 
                 /// <summary>
-                /// Creates an UnkStruct7 with default values.
+                /// Creates an UnkStruct8 with default values.
                 /// </summary>
                 public UnkStruct8() { }
 
@@ -1283,7 +1283,7 @@ namespace SoulsFormats
                 public int Unk00 { get; set; }
 
                 /// <summary>
-                /// Creates an UnkStruct7 with default values.
+                /// Creates an UnkStruct9 with default values.
                 /// </summary>
                 public UnkStruct9() { }
 
@@ -1354,7 +1354,7 @@ namespace SoulsFormats
                 public int CullingHeightBehavior { get; set; }
 
                 /// <summary>
-                /// Creates an UnkStruct7 with default values.
+                /// Creates a TileLoadConfig with default values.
                 /// </summary>
                 public TileLoadConfig()
                 {
@@ -1414,7 +1414,7 @@ namespace SoulsFormats
                 public int Unk04 { get; set; }
 
                 /// <summary>
-                /// Creates an UnkStruct7 with default values.
+                /// Creates an UnkStruct11 with default values.
                 /// </summary>
                 public UnkStruct11() { }
 
@@ -1821,18 +1821,18 @@ namespace SoulsFormats
 
                 private protected override void WriteTileLoad(BinaryWriterEx bw) => TileLoad.Write(bw);
 
-                internal override void GetNames(MSBE msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    CollisionPartName = MSB.FindName(entries.Parts, CollisionPartIndex);
-                    WalkRouteName = MSB.FindName(msb.Events.PatrolInfo, WalkRouteIndex);
+                    base.GetNames(entries);
+                    CollisionPartName = MSB.FindName(entries.Parts.Names, CollisionPartIndex);
+                    WalkRouteName = MSB.FindName(entries.PatrolInfos.Names, WalkRouteIndex);
                 }
 
-                internal override void GetIndices(MSBE msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    CollisionPartIndex = MSB.FindIndex(this, entries.Parts, CollisionPartName);
-                    WalkRouteIndex = (short)MSB.FindIndex(this, msb.Events.PatrolInfo, WalkRouteName);
+                    base.GetIndices(entries);
+                    CollisionPartIndex = MSB.FindIndex(this, entries.Parts.Indices, CollisionPartName);
+                    WalkRouteIndex = (short)MSB.FindIndex(this, entries.PatrolInfos.Indices, WalkRouteName);
                 }
             }
 
@@ -2500,16 +2500,16 @@ namespace SoulsFormats
                 private protected override void WriteTileLoad(BinaryWriterEx bw) => TileLoad.Write(bw);
                 private protected override void WriteUnk11(BinaryWriterEx bw) => Unk11.Write(bw);
 
-                internal override void GetNames(MSBE msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    CollisionName = MSB.FindName(msb.Parts.Collisions, CollisionIndex);
+                    base.GetNames(entries);
+                    CollisionName = MSB.FindName(entries.Collisions.Names, CollisionIndex);
                 }
 
-                internal override void GetIndices(MSBE msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    CollisionIndex = MSB.FindIndex(this, msb.Parts.Collisions, CollisionName);
+                    base.GetIndices(entries);
+                    CollisionIndex = MSB.FindIndex(this, entries.Collisions.Indices, CollisionName);
                 }
             }
 
@@ -3340,18 +3340,16 @@ namespace SoulsFormats
                 private protected override void WriteTileLoad(BinaryWriterEx bw) => TileLoad.Write(bw);
                 private protected override void WriteUnk11(BinaryWriterEx bw) => Unk11.Write(bw);
 
-                internal override void GetNames(MSBE msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    UnkPartNames = MSB.FindNames(entries.Parts, UnkPartIndices);
-                    UnkT54PartName = MSB.FindName(entries.Parts, UnkT54PartIndex);
+                    base.GetNames(entries);
+                    UnkPartNames = MSB.FindNames(entries.Parts.Names, UnkPartIndices);
                 }
 
-                internal override void GetIndices(MSBE msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    UnkPartIndices = MSB.FindIndices(this, entries.Parts, UnkPartNames);
-                    UnkT54PartIndex = MSB.FindIndex(entries.Parts, UnkT54PartName);
+                    base.GetIndices(entries);
+                    UnkPartIndices = MSB.FindIndices(this, entries.Parts.Indices, UnkPartNames);
                 }
             }
         }

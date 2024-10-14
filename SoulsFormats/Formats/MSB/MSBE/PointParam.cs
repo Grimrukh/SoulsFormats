@@ -782,16 +782,16 @@ namespace SoulsFormats
 
             internal virtual void GetNames(Entries entries)
             {
-                ActivationPartName = MSB.FindName(entries.Parts, ActivationPartIndex);
+                ActivationPartName = MSB.FindName(entries.Parts.Names, ActivationPartIndex);
                 if (Shape is MSB.Shape.Composite composite)
-                    composite.GetNames(entries.Regions);
+                    composite.GetNames(entries.Regions.Names);
             }
 
             internal virtual void GetIndices(Entries entries)
             {
-                ActivationPartIndex = MSB.FindIndex(this, entries.Parts, ActivationPartName);
+                ActivationPartIndex = MSB.FindIndex(this, entries.Parts.Indices, ActivationPartName);
                 if (Shape is MSB.Shape.Composite composite)
-                    composite.GetIndices(entries.Regions);
+                    composite.GetIndices(entries.Regions.Indices);
             }
 
             /// <summary>
@@ -1040,13 +1040,13 @@ namespace SoulsFormats
                 internal override void GetNames(Entries entries)
                 {
                     base.GetNames(entries);
-                    ChildRegionNames = MSB.FindNames(entries.Regions, ChildRegionIndices);
+                    ChildRegionNames = MSB.FindNames(entries.Regions.Names, ChildRegionIndices);
                 }
 
                 internal override void GetIndices(Entries entries)
                 {
                     base.GetIndices(entries);
-                    ChildRegionIndices = MSB.FindIndices(this, entries.Regions, ChildRegionNames);
+                    ChildRegionIndices = MSB.FindIndices(this, entries.Regions.Indices, ChildRegionNames);
                 }
             }
 
@@ -1140,13 +1140,13 @@ namespace SoulsFormats
                 internal override void GetNames(Entries entries)
                 {
                     base.GetNames(entries);
-                    WindAreaName = MSB.FindName(entries.Regions, WindAreaIndex);
+                    WindAreaName = MSB.FindName(entries.Regions.Names, WindAreaIndex);
                 }
 
                 internal override void GetIndices(Entries entries)
                 {
                     base.GetIndices(entries);
-                    WindAreaIndex = MSB.FindIndex(this, entries.Regions, WindAreaName);
+                    WindAreaIndex = MSB.FindIndex(this, entries.Regions.Indices, WindAreaName);
                 }
             }
 
@@ -2104,13 +2104,13 @@ namespace SoulsFormats
                 internal override void GetNames(Entries entries)
                 {
                     base.GetNames(entries);
-                    PartNames = MSB.FindNames(entries.Parts, PartIndices);
+                    PartNames = MSB.FindNames(entries.Parts.Names, PartIndices);
                 }
 
                 internal override void GetIndices(Entries entries)
                 {
                     base.GetIndices(entries);
-                    PartIndices = MSB.FindIndices(this, entries.Parts, PartNames);
+                    PartIndices = MSB.FindIndices(this, entries.Parts.Indices, PartNames);
                 }
             }
 

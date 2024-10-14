@@ -31,6 +31,13 @@ namespace SoulsFormats
             /// Cells contained in this row. Must be loaded with PARAM.ApplyParamdef() before use.
             /// </summary>
             public IReadOnlyList<Cell> Cells { get; private set; }
+            
+            /// <summary>
+            /// Maps PARAMDEF internal field names to their Cells for more efficient retrieval.
+            ///
+            /// Must be loaded with PARAM.ApplyParamdef() before use.
+            /// </summary>
+            public IReadOnlyDictionary<string, Cell> CellDict { get; private set; }
 
             internal long DataOffset;
 
@@ -51,6 +58,7 @@ namespace SoulsFormats
                     cells[i] = new Cell(field, value);
                 }
                 Cells = cells;
+                CellDict = Cells.ToDictionary(cell => cell.Def.InternalName, cell => cell);
             }
 
             /// <summary>
@@ -69,9 +77,10 @@ namespace SoulsFormats
                     cells.Add(new Cell(cell));
                 }
                 Cells = cells;
-}
+                CellDict = Cells.ToDictionary(cell => cell.Def.InternalName, cell => cell);
+            }
 
-            internal Row(BinaryReaderEx br, PARAM parent, ref long actualStringsOffset)
+            internal Row(BinaryReaderEx br, PARAM parent, ref long actualStringsOffset, bool noNames = false)
             {
                 long nameOffset;
                 if (parent.Format2D.HasFlag(FormatFlags1.LongDataOffset))
@@ -93,7 +102,9 @@ namespace SoulsFormats
                     if (actualStringsOffset == 0 || nameOffset < actualStringsOffset)
                         actualStringsOffset = nameOffset;
 
-                    if (parent.Format2E.HasFlag(FormatFlags2.UnicodeRowNames))
+                    if (noNames)
+                        Name = "";
+                    else if (parent.Format2E.HasFlag(FormatFlags2.UnicodeRowNames))
                         Name = br.GetUTF16(nameOffset);
                     else
                         Name = br.GetShiftJIS(nameOffset);
@@ -208,6 +219,7 @@ namespace SoulsFormats
 
                 checkOrphanedBits();
                 Cells = cells;
+                CellDict = Cells.ToDictionary(cell => cell.Def.InternalName, cell => cell);
             }
 
             internal void WriteHeader(BinaryWriterEx bw, PARAM parent, int i)
@@ -226,14 +238,37 @@ namespace SoulsFormats
                     bw.ReserveUInt32($"NameOffset{i}");
                 }
             }
+            
+            /// <summary>
+            /// Write standalone row cell data directly to bytes.
+            /// </summary>
+            /// <returns></returns>
+            public byte[] WriteCells()
+            {
+                using var ms = new MemoryStream();
+                var bw = new BinaryWriterEx(false, ms);
+                WriteCells(bw);
+                return ms.ToArray();
+            }
 
+            /// <summary>
+            /// Write cells and fill parent PARAM row data offset.
+            /// </summary>
+            /// <param name="bw"></param>
+            /// <param name="parent"></param>
+            /// <param name="index"></param>
             internal void WriteCells(BinaryWriterEx bw, PARAM parent, int index)
             {
                 if (parent.Format2D.HasFlag(FormatFlags1.LongDataOffset))
                     bw.FillInt64($"RowOffset{index}", bw.Position);
                 else
                     bw.FillUInt32($"RowOffset{index}", (uint)bw.Position);
+                
+                WriteCells(bw);
+            }
 
+            void WriteCells(BinaryWriterEx bw)
+            {
                 int bitOffset = -1;
                 PARAMDEF.DefType bitType = PARAMDEF.DefType.u8;
                 ulong bitValue = 0;
@@ -360,9 +395,9 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Returns the first cell in the row with the given internal name.
+            /// Retrieves the given internal name's Cell.
             /// </summary>
-            public Cell this[string name] => Cells.FirstOrDefault(cell => cell.Def.InternalName == name);
+            public Cell this[string name] => CellDict[name];
         }
     }
 }

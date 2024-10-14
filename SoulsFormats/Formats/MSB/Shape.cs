@@ -374,16 +374,30 @@ namespace SoulsFormats
                         Children[i].Write(bw);
                 }
 
+                // TODO: Remove after all MSB classes updated.
                 internal void GetNames<T>(List<T> regions) where T : IMsbRegion
                 {
                     foreach (Child child in Children)
                         child.GetNames(regions);
                 }
+                
+                internal void GetNames(List<string> regionNames)
+                {
+                    foreach (Child child in Children)
+                        child.GetNames(regionNames);
+                }
 
+                // TODO: Remove after all MSB classes updated.
                 internal void GetIndices<T>(List<T> regions) where T : IMsbRegion
                 {
                     foreach (Child child in Children)
                         child.GetIndices(regions);
+                }
+                
+                internal void GetIndices(Dictionary<string, int> regionIndices)
+                {
+                    foreach (Child child in Children)
+                        child.GetIndices(regionIndices);
                 }
 
                 /// <summary>
@@ -429,14 +443,26 @@ namespace SoulsFormats
                         bw.WriteInt32(unkShapeSubtractType);
                     }
 
+                    // TODO: Remove after all MSB classes updated.
                     internal void GetNames<T>(List<T> regions) where T : IMsbRegion
                     {
                         RegionName = FindName(regions, RegionIndex);
                     }
+                    
+                    internal void GetNames(List<string> regionNames)
+                    {
+                        RegionName = FindName(regionNames, RegionIndex);
+                    }
 
+                    // TODO: Remove after all MSB classes updated.
                     internal void GetIndices<T>(List<T> regions) where T : IMsbRegion
                     {
                         RegionIndex = FindIndex(regions, RegionName);
+                    }
+                    
+                    internal void GetIndices(Dictionary<string, int> regionIndices)
+                    {
+                        RegionIndex = FindIndex(regionIndices, RegionName);
                     }
                 }
             }

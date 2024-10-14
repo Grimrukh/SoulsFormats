@@ -52,6 +52,14 @@ namespace SoulsFormats
         /// The rows of this param; must be loaded with PARAM.ApplyParamdef() before cells can be used.
         /// </summary>
         public List<Row> Rows { get; set; }
+        
+        /// <summary>
+        /// Rows of this param, keyed by their `ID`. If there are ID duplicates, the first is used only. This mimics
+        /// the old slow `Rows.Find()` behavior anyway. 
+        ///
+        /// NOTE: It is up to the user to keep this synced with any changes to row IDs or new/deleted Rows.
+        /// </summary>
+        public Dictionary<int, Row> RowsDict { get; private set; }
 
         /// <summary>
         /// The current applied PARAMDEF.
@@ -59,6 +67,19 @@ namespace SoulsFormats
         public PARAMDEF AppliedParamdef { get; private set; }
 
         private BinaryReaderEx RowReader;
+        
+        public bool NoNames { get; private set; }
+
+        public static PARAM ReadFromMemory(Memory<byte> memoryBytes)
+        {
+            BinaryReaderEx br = new BinaryReaderEx(false, memoryBytes);
+            PARAM param = new PARAM()
+            {
+                NoNames = true,
+            };
+            param.Read(br);
+            return param;
+        }
 
         /// <summary>
         /// Deserializes file data from a stream.
@@ -122,8 +143,13 @@ namespace SoulsFormats
             }
 
             Rows = new List<Row>(rowCount);
+            RowsDict = new Dictionary<int, Row>();
             for (int i = 0; i < rowCount; i++)
-                Rows.Add(new Row(br, this, ref actualStringsOffset));
+            {
+                Row row = new(br, this, ref actualStringsOffset, NoNames);
+                Rows.Add(row);
+                RowsDict.TryAdd(row.ID, row);  // ignore if already present
+            }
 
             if (Rows.Count > 1)
                 DetectedSize = Rows[1].DataOffset - Rows[0].DataOffset;
@@ -300,7 +326,7 @@ namespace SoulsFormats
         /// <summary>
         /// Returns the first row with the given ID, or null if not found.
         /// </summary>
-        public Row this[int id] => Rows.Find(row => row.ID == id);
+        public Row this[int id] => RowsDict[id];
 
         /// <summary>
         /// Returns a string representation of the PARAM.

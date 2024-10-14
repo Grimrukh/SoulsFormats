@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
+using System.Linq;
 
 namespace SoulsFormats
 {
@@ -77,34 +78,39 @@ namespace SoulsFormats
             br.BigEndian = false;
             MSB.AssertHeader(br);
 
-            Entries entries;
             Models = new ModelParam();
-            entries.Models = Models.Read(br);
+            List<Model> modelEntries = Models.Read(br);
             Events = new EventParam();
-            entries.Events = Events.Read(br);
+            List<Event> eventEntries = Events.Read(br);
             Regions = new PointParam();
-            entries.Regions = Regions.Read(br);
+            List<Region> regionEntries = Regions.Read(br);
             Routes = new RouteParam();
-            entries.Routes = Routes.Read(br);
+            List<Route> routeEntries = Routes.Read(br);
+            
             Layers = new EmptyParam(0x49, "LAYER_PARAM_ST");
             Layers.Read(br);
+            
             Parts = new PartsParam();
-            entries.Parts = Parts.Read(br);
+            List<Part> partEntries = Parts.Read(br);
 
             if (br.Position != 0)
                 throw new InvalidDataException("The next param offset of the final param should be 0, but it wasn't.");
 
-            MSB.DisambiguateNames(entries.Models);
-            MSB.DisambiguateNames(entries.Regions);
-            MSB.DisambiguateNames(entries.Parts);
-            MSB.DisambiguateNames(entries.Events);
+            MSB.DisambiguateNames(modelEntries);
+            MSB.DisambiguateNames(regionEntries);
+            MSB.DisambiguateNames(partEntries);
+            MSB.DisambiguateNames(eventEntries);
+            
+            Entries entries = new(
+                modelEntries, eventEntries, Events.PatrolInfo,
+                regionEntries, routeEntries, partEntries, Parts.Collisions);
 
             foreach (Event evt in entries.Events)
-                evt.GetNames(this, entries);
+                evt.GetNames(entries);
             foreach (Region region in entries.Regions)
                 region.GetNames(entries);
             foreach (Part part in entries.Parts)
-                part.GetNames(this, entries);
+                part.GetNames(entries);
         }
 
         /// <summary>
@@ -112,46 +118,80 @@ namespace SoulsFormats
         /// </summary>
         protected override void Write(BinaryWriterEx bw)
         {
-            Entries entries;
-            entries.Models = Models.GetEntries();
-            entries.Events = Events.GetEntries();
-            entries.Regions = Regions.GetEntries();
-            entries.Routes = Routes.GetEntries();
-            entries.Parts = Parts.GetEntries();
+            Entries entries = new(this);
 
+            Dictionary<string, int> modelCounts = entries.CountModelInstances();
             foreach (Model model in entries.Models)
-                model.CountInstances(entries.Parts);
+                model.CountInstances(modelCounts);
             foreach (Event evt in entries.Events)
-                evt.GetIndices(this, entries);
+                evt.GetIndices(entries);
             foreach (Region region in entries.Regions)
                 region.GetIndices(entries);
             foreach (Part part in entries.Parts)
-                part.GetIndices(this, entries);
+                part.GetIndices(entries);
 
             bw.BigEndian = false;
             MSB.WriteHeader(bw);
 
-            Models.Write(bw, entries.Models);
+            Models.Write(bw, entries.Models.Items);
             bw.FillInt64("NextParamOffset", bw.Position);
-            Events.Write(bw, entries.Events);
+            Events.Write(bw, entries.Events.Items);
             bw.FillInt64("NextParamOffset", bw.Position);
-            Regions.Write(bw, entries.Regions);
+            Regions.Write(bw, entries.Regions.Items);
             bw.FillInt64("NextParamOffset", bw.Position);
-            Routes.Write(bw, entries.Routes);
+            Routes.Write(bw, entries.Routes.Items);
             bw.FillInt64("NextParamOffset", bw.Position);
             Layers.Write(bw, Layers.GetEntries());
             bw.FillInt64("NextParamOffset", bw.Position);
-            Parts.Write(bw, entries.Parts);
+            Parts.Write(bw, entries.Parts.Items);
             bw.FillInt64("NextParamOffset", 0);
         }
 
-        internal struct Entries
+        internal class Entries
         {
-            public List<Model> Models;
-            public List<Event> Events;
-            public List<Region> Regions;
-            public List<Route> Routes;
-            public List<Part> Parts;
+            public EntryCollection<Model> Models { get; private set; }
+            public EntryCollection<Event> Events { get; private set; }
+            public EntryCollection<Event.PatrolInfo> PatrolInfos { get; private set; }
+            public EntryCollection<Region> Regions { get; private set; }
+            public EntryCollection<Route> Routes { get; private set; }
+            public EntryCollection<Part> Parts { get; private set; }
+            public EntryCollection<Part.Collision> Collisions { get; private set; }
+
+            public Entries(
+                List<Model> models, List<Event> events, List<Event.PatrolInfo> patrolInfos, 
+                List<Region> regions, List<Route> routes, List<Part> parts, List<Part.Collision> collisions)
+            {
+                Models = new EntryCollection<Model>(models);
+                Events = new EntryCollection<Event>(events);
+                PatrolInfos = new EntryCollection<Event.PatrolInfo>(patrolInfos);
+                Regions = new EntryCollection<Region>(regions);
+                Routes = new EntryCollection<Route>(routes);
+                Parts = new EntryCollection<Part>(parts);
+                Collisions = new EntryCollection<Part.Collision>(collisions);
+            }
+
+            public Entries(MSBE msb)
+            {
+                Models = new EntryCollection<Model>(msb.Models.GetEntries());
+                Events = new EntryCollection<Event>(msb.Events.GetEntries());
+                PatrolInfos = new EntryCollection<Event.PatrolInfo>(msb.Events.PatrolInfo.ToList());
+                Regions = new EntryCollection<Region>(msb.Regions.GetEntries());
+                Routes = new EntryCollection<Route>(msb.Routes.GetEntries());
+                Parts = new EntryCollection<Part>(msb.Parts.GetEntries());
+                Collisions = new EntryCollection<Part.Collision>(msb.Parts.Collisions.ToList());
+            }
+            
+            public Dictionary<string, int> CountModelInstances()
+            {
+                Dictionary<string, int> modelCounts = new();
+                foreach (Part part in Parts)
+                {
+                    if (!string.IsNullOrEmpty(part.ModelName) && !modelCounts.TryAdd(part.ModelName, 1))
+                        modelCounts[part.ModelName]++;
+                }
+
+                return modelCounts;
+            }
         }
 
         /// <summary>

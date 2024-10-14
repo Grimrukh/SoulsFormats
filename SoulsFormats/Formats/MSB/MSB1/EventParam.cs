@@ -319,16 +319,16 @@ namespace SoulsFormats
 
             private protected abstract void WriteTypeData(BinaryWriterEx bw);
 
-            internal virtual void GetNames(MSB1 msb, Entries entries)
+            internal virtual void GetNames(Entries entries)
             {
-                PartName = MSB.FindName(entries.Parts, PartIndex);
-                RegionName = MSB.FindName(entries.Regions, RegionIndex);
+                PartName = MSB.FindName(entries.Parts.Names, PartIndex);
+                RegionName = MSB.FindName(entries.Regions.Names, RegionIndex);
             }
 
             internal virtual void GetIndices(MSB1 msb, Entries entries)
             {
-                PartIndex = MSB.FindIndex(this, entries.Parts, PartName);
-                RegionIndex = MSB.FindIndex(this, entries.Regions, RegionName);
+                PartIndex = MSB.FindIndex(this, entries.Parts.Indices, PartName);
+                RegionIndex = MSB.FindIndex(this, entries.Regions.Indices, RegionName);
             }
 
             /// <summary>
@@ -619,16 +619,16 @@ namespace SoulsFormats
                     bw.WriteInt16(0);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    TreasurePartName = MSB.FindName(entries.Parts, TreasurePartIndex);
+                    base.GetNames(entries);
+                    TreasurePartName = MSB.FindName(entries.Parts.Names, TreasurePartIndex);
                 }
 
                 internal override void GetIndices(MSB1 msb, Entries entries)
                 {
                     base.GetIndices(msb, entries);
-                    TreasurePartIndex = MSB.FindIndex(this, entries.Parts, TreasurePartName);
+                    TreasurePartIndex = MSB.FindIndex(this, entries.Parts.Indices, TreasurePartName);
                 }
             }
 
@@ -745,18 +745,18 @@ namespace SoulsFormats
                     bw.WritePattern(0x40, 0x00);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    SpawnPointNames = MSB.FindNames(entries.Regions, SpawnPointIndices);
-                    SpawnPartNames = MSB.FindNames(entries.Parts, SpawnPartIndices);
+                    base.GetNames(entries);
+                    SpawnPointNames = MSB.FindNames(entries.Regions.Names, SpawnPointIndices);
+                    SpawnPartNames = MSB.FindNames(entries.Parts.Names, SpawnPartIndices);
                 }
 
                 internal override void GetIndices(MSB1 msb, Entries entries)
                 {
                     base.GetIndices(msb, entries);
-                    SpawnPointIndices = MSB.FindIndices(this, entries.Regions, SpawnPointNames);
-                    SpawnPartIndices = MSB.FindIndices(this, entries.Parts, SpawnPartNames);
+                    SpawnPointIndices = MSB.FindIndices(this, entries.Regions.Indices, SpawnPointNames);
+                    SpawnPartIndices = MSB.FindIndices(this, entries.Parts.Indices, SpawnPartNames);
                 }
             }
 
@@ -888,16 +888,16 @@ namespace SoulsFormats
                     bw.WriteInt32(EventFlagID);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    ObjActPartName = MSB.FindName(entries.Parts, ObjActPartIndex);
+                    base.GetNames(entries);
+                    ObjActPartName = MSB.FindName(entries.Parts.Names, ObjActPartIndex);
                 }
 
                 internal override void GetIndices(MSB1 msb, Entries entries)
                 {
                     base.GetIndices(msb, entries);
-                    ObjActPartIndex = MSB.FindIndex(this, entries.Parts, ObjActPartName);
+                    ObjActPartIndex = MSB.FindIndex(this, entries.Parts.Indices, ObjActPartName);
                 }
             }
 
@@ -939,16 +939,16 @@ namespace SoulsFormats
                     bw.WriteInt32(0);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    SpawnPointName = MSB.FindName(entries.Regions, SpawnPointIndex);
+                    base.GetNames(entries);
+                    SpawnPointName = MSB.FindName(entries.Regions.Names, SpawnPointIndex);
                 }
 
                 internal override void GetIndices(MSB1 msb, Entries entries)
                 {
                     base.GetIndices(msb, entries);
-                    SpawnPointIndex = MSB.FindIndex(this, entries.Regions, SpawnPointName);
+                    SpawnPointIndex = MSB.FindIndex(this, entries.Regions.Indices, SpawnPointName);
                 }
             }
 
@@ -1028,16 +1028,16 @@ namespace SoulsFormats
                     bw.WriteInt32(0);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    NavmeshRegionName = MSB.FindName(entries.Regions, NavmeshRegionIndex);
+                    base.GetNames(entries);
+                    NavmeshRegionName = MSB.FindName(entries.Regions.Names, NavmeshRegionIndex);
                 }
 
                 internal override void GetIndices(MSB1 msb, Entries entries)
                 {
                     base.GetIndices(msb, entries);
-                    NavmeshRegionIndex = MSB.FindIndex(this, entries.Regions, NavmeshRegionName);
+                    NavmeshRegionIndex = MSB.FindIndex(this, entries.Regions.Indices, NavmeshRegionName);
                 }
             }
 

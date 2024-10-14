@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace SoulsFormats
 {
@@ -38,12 +39,48 @@ namespace SoulsFormats
         public PartsParam Parts { get; set; }
         IMsbParam<IMsbPart> IMsb.Parts => Parts;
 
-        internal struct Entries
+        internal class Entries
         {
-            public List<Model> Models;
-            public List<Event> Events;
-            public List<Region> Regions;
-            public List<Part> Parts;
+            public EntryCollection<Model> Models { get; private set; }
+            public EntryCollection<Event> Events { get; private set; }
+            public EntryCollection<Event.Environment> Environments { get; private set; }
+            public EntryCollection<Region> Regions { get; private set; }
+            public EntryCollection<Part> Parts { get; private set; }
+            public EntryCollection<Part.Collision> Collisions { get; private set; }
+
+            public Entries(
+                List<Model> models, List<Event> events, List<Event.Environment> environments, 
+                List<Region> regions, List<Part> parts, List<Part.Collision> collisions)
+            {
+                Models = new EntryCollection<Model>(models);
+                Events = new EntryCollection<Event>(events);
+                Environments = new EntryCollection<Event.Environment>(environments);
+                Regions = new EntryCollection<Region>(regions);
+                Parts = new EntryCollection<Part>(parts);
+                Collisions = new EntryCollection<Part.Collision>(collisions);
+            }
+
+            public Entries(MSB1 msb)
+            {
+                Models = new EntryCollection<Model>(msb.Models.GetEntries());
+                Events = new EntryCollection<Event>(msb.Events.GetEntries());
+                Environments = new EntryCollection<Event.Environment>(msb.Events.Environments.ToList());
+                Regions = new EntryCollection<Region>(msb.Regions.GetEntries());
+                Parts = new EntryCollection<Part>(msb.Parts.GetEntries());
+                Collisions = new EntryCollection<Part.Collision>(msb.Parts.Collisions.ToList());
+            }
+            
+            public Dictionary<string, int> CountModelInstances()
+            {
+                Dictionary<string, int> modelCounts = new();
+                foreach (Part part in Parts)
+                {
+                    if (!string.IsNullOrEmpty(part.ModelName) && !modelCounts.TryAdd(part.ModelName, 1))
+                        modelCounts[part.ModelName]++;
+                }
+
+                return modelCounts;
+            }
         }
 
         /// <summary>
@@ -65,27 +102,28 @@ namespace SoulsFormats
             br.BigEndian = false;
             br.BigEndian = BigEndian = br.GetUInt32(4) > 0xFFFF;
 
-            Entries entries;
             Models = new ModelParam();
-            entries.Models = Models.Read(br);
+            List<Model> models = Models.Read(br);
             Events = new EventParam();
-            entries.Events = Events.Read(br);
+            List<Event> events = Events.Read(br);
             Regions = new PointParam();
-            entries.Regions = Regions.Read(br);
+            List<Region> regions = Regions.Read(br);
             Parts = new PartsParam();
-            entries.Parts = Parts.Read(br);
+            List<Part> parts = Parts.Read(br);
 
             if (br.Position != 0)
                 throw new InvalidDataException("The next param offset of the final param should be 0, but it wasn't.");
 
-            MSB.DisambiguateNames(entries.Models);
-            MSB.DisambiguateNames(entries.Regions);
-            MSB.DisambiguateNames(entries.Parts);
+            MSB.DisambiguateNames(models);
+            MSB.DisambiguateNames(regions);
+            MSB.DisambiguateNames(parts);
+            
+            Entries entries = new(models, events, Events.Environments, regions, parts, Parts.Collisions);
 
             foreach (Event evt in entries.Events)
-                evt.GetNames(this, entries);
+                evt.GetNames(entries);
             foreach (Part part in entries.Parts)
-                part.GetNames(this, entries);
+                part.GetNames(entries);
         }
 
         /// <summary>
@@ -93,28 +131,27 @@ namespace SoulsFormats
         /// </summary>
         protected override void Write(BinaryWriterEx bw)
         {
-            Entries entries;
-            entries.Models = Models.GetEntries();
-            entries.Events = Events.GetEntries();
-            entries.Regions = Regions.GetEntries();
-            entries.Parts = Parts.GetEntries();
+            Entries entries = new(this);
 
+            // Make a dictionary mapping each model name to its number of uses.
+
+            Dictionary<string, int> modelCounts = entries.CountModelInstances();
             foreach (Model model in entries.Models)
-                model.CountInstances(entries.Parts);
+                model.CountInstances(modelCounts);
             foreach (Event evt in entries.Events)
                 evt.GetIndices(this, entries);
             foreach (Part part in entries.Parts)
-                part.GetIndices(this, entries);
+                part.GetIndices(entries);
 
             bw.BigEndian = BigEndian;
 
-            Models.Write(bw, entries.Models);
+            Models.Write(bw, entries.Models.Items);
             bw.FillInt32("NextParamOffset", (int)bw.Position);
-            Events.Write(bw, entries.Events);
+            Events.Write(bw, entries.Events.Items);
             bw.FillInt32("NextParamOffset", (int)bw.Position);
-            Regions.Write(bw, entries.Regions);
+            Regions.Write(bw, entries.Regions.Items);
             bw.FillInt32("NextParamOffset", (int)bw.Position);
-            Parts.Write(bw, entries.Parts);
+            Parts.Write(bw, entries.Parts.Items);
             bw.FillInt32("NextParamOffset", 0);
         }
 

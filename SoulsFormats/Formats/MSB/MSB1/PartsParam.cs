@@ -462,14 +462,14 @@ namespace SoulsFormats
 
             private protected abstract void WriteTypeData(BinaryWriterEx bw);
 
-            internal virtual void GetNames(MSB1 msb, Entries entries)
+            internal virtual void GetNames(Entries entries)
             {
-                ModelName = MSB.FindName(entries.Models, ModelIndex);
+                ModelName = MSB.FindName(entries.Models.Names, ModelIndex);
             }
 
-            internal virtual void GetIndices(MSB1 msb, Entries entries)
+            internal virtual void GetIndices(Entries entries)
             {
-                ModelIndex = MSB.FindIndex(this, entries.Models, ModelName);
+                ModelIndex = MSB.FindIndex(this, entries.Models.Indices, ModelName);
             }
 
             /// <summary>
@@ -569,16 +569,16 @@ namespace SoulsFormats
                     bw.WriteInt32(0);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    CollisionName = MSB.FindName(entries.Parts, CollisionIndex);
+                    base.GetNames(entries);
+                    CollisionName = MSB.FindName(entries.Parts.Names, CollisionIndex);
                 }
 
-                internal override void GetIndices(MSB1 msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    CollisionIndex = MSB.FindIndex(this, entries.Parts, CollisionName);
+                    base.GetIndices(entries);
+                    CollisionIndex = MSB.FindIndex(this, entries.Parts.Indices, CollisionName);
                 }
             }
 
@@ -726,24 +726,24 @@ namespace SoulsFormats
                     bw.WriteInt32(DamageAnimID);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    CollisionName = MSB.FindName(entries.Parts, CollisionIndex);
+                    base.GetNames(entries);
+                    CollisionName = MSB.FindName(entries.Parts.Names, CollisionIndex);
 
                     MovePointNames = new string[MovePointIndices.Length];
                     for (int i = 0; i < MovePointIndices.Length; i++)
-                        MovePointNames[i] = MSB.FindName(entries.Regions, MovePointIndices[i]);
+                        MovePointNames[i] = MSB.FindName(entries.Regions.Names, MovePointIndices[i]);
                 }
 
-                internal override void GetIndices(MSB1 msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    CollisionIndex = MSB.FindIndex(this, entries.Parts, CollisionName);
+                    base.GetIndices(entries);
+                    CollisionIndex = MSB.FindIndex(this, entries.Parts.Indices, CollisionName);
 
                     MovePointIndices = new short[MovePointNames.Length];
                     for (int i = 0; i < MovePointNames.Length; i++)
-                        MovePointIndices[i] = (short)MSB.FindIndex(this, entries.Regions, MovePointNames[i]);
+                        MovePointIndices[i] = (short)MSB.FindIndex(this, entries.Regions.Indices, MovePointNames[i]);
                 }
             }
 
@@ -960,16 +960,16 @@ namespace SoulsFormats
                     bw.WriteInt32(0);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    EnvLightMapSpotName = MSB.FindName(entries.Events.FindAll(e => e.GetType() == typeof(MSB1.Event.Environment)), EnvLightMapSpotIndex);
+                    base.GetNames(entries);
+                    EnvLightMapSpotName = MSB.FindName(entries.Environments.Names, EnvLightMapSpotIndex);
                 }
 
-                internal override void GetIndices(MSB1 msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    EnvLightMapSpotIndex = (short)MSB.FindIndex(this, entries.Events.FindAll(e => e.GetType() == typeof(MSB1.Event.Environment)), EnvLightMapSpotName);
+                    base.GetIndices(entries);
+                    EnvLightMapSpotIndex = (short)MSB.FindIndex(this, entries.Environments.Indices, EnvLightMapSpotName);
                 }
             }
 
@@ -1103,16 +1103,16 @@ namespace SoulsFormats
                     bw.WriteInt32(0);
                 }
 
-                internal override void GetNames(MSB1 msb, Entries entries)
+                internal override void GetNames(Entries entries)
                 {
-                    base.GetNames(msb, entries);
-                    CollisionName = MSB.FindName(msb.Parts.Collisions, CollisionIndex);
+                    base.GetNames(entries);
+                    CollisionName = MSB.FindName(entries.Collisions.Names, CollisionIndex);
                 }
 
-                internal override void GetIndices(MSB1 msb, Entries entries)
+                internal override void GetIndices(Entries entries)
                 {
-                    base.GetIndices(msb, entries);
-                    CollisionIndex = MSB.FindIndex(this, msb.Parts.Collisions, CollisionName);
+                    base.GetIndices(entries);
+                    CollisionIndex = MSB.FindIndex(this, entries.Collisions.Indices, CollisionName);
                 }
             }
         }

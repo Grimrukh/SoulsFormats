@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace SoulsFormats
 {
@@ -214,9 +213,9 @@ namespace SoulsFormats
             private protected virtual void WriteTypeData(BinaryWriterEx bw)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadTypeData)}.");
 
-            internal void CountInstances(List<Part> parts)
+            internal void CountInstances(Dictionary<string, int> modelCounts)
             {
-                InstanceCount = parts.Count(p => p.ModelName == Name);
+                InstanceCount = modelCounts.GetValueOrDefault(Name, 0);
             }
 
             /// <summary>
