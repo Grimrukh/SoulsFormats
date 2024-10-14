@@ -14,8 +14,6 @@ namespace SoulsFormats
             /// </summary>
             public int Size => this.Sum(member => member.Size);
 
-            public BufferLayout() { }
-
             internal BufferLayout(BinaryReaderEx br) : base()
             {
                 short memberCount = br.ReadInt16();

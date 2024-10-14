@@ -10,16 +10,11 @@ namespace SoulsFormats
     /// <summary>
     /// An extended writer for binary data supporting big and little endianness, value reservation, and arrays.
     /// </summary>
-    public class BinaryWriterEx : IDisposable
+    public class BinaryWriterEx
     {
         private BinaryWriter bw;
         private Stack<long> steps;
         private Dictionary<string, long> reservations;
-
-        /// <summary>
-        /// Whether or not the <see cref="BinaryWriterEx"/> has been disposed.
-        /// </summary>
-        public bool IsDisposed { get; private set; }
 
         /// <summary>
         /// Interpret values as big-endian if set, or little-endian if not.
@@ -56,25 +51,20 @@ namespace SoulsFormats
         public long Length => Stream.Length;
 
         /// <summary>
-        /// Initializes a new <c>BinaryWriterEx</c> writing to the specified path.
-        /// </summary>
-        public BinaryWriterEx(bool bigEndian, string path) : this(bigEndian, new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read), false) { }
-
-        /// <summary>
         /// Initializes a new <c>BinaryWriterEx</c> writing to an empty <c>MemoryStream</c>
         /// </summary>
-        public BinaryWriterEx(bool bigEndian) : this(bigEndian, new MemoryStream(), false) { }
+        public BinaryWriterEx(bool bigEndian) : this(bigEndian, new MemoryStream()) { }
 
         /// <summary>
         /// Initializes a new <c>BinaryWriterEx</c> writing to the specified stream.
         /// </summary>
-        public BinaryWriterEx(bool bigEndian, Stream stream, bool leaveOpen = false)
+        public BinaryWriterEx(bool bigEndian, Stream stream)
         {
             BigEndian = bigEndian;
             steps = new Stack<long>();
             reservations = new Dictionary<string, long>();
             Stream = stream;
-            bw = new BinaryWriter(stream, Encoding.UTF8, leaveOpen);
+            bw = new BinaryWriter(stream);
         }
 
         private void WriteReversedBytes(byte[] bytes)
@@ -148,28 +138,12 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Writes specified bytes until the stream position meets the specified alignment.
-        /// </summary>
-        public void Pad(int align, byte custom)
-        {
-            while (Stream.Position % align > 0)
-                WriteByte(custom);
-        }
-
-        /// <summary>
         /// Writes 0x00 bytes until the stream position meets the specified alignment.
         /// </summary>
         public void Pad(int align)
         {
-            Pad(align, 0);
-        }
-
-        /// <summary>
-        /// Writes 0xFF bytes until the stream position meets the specified alignment. BluePoint files do this.
-        /// </summary>
-        public void PadFF(int align)
-        {
-            Pad(align, 0xFF);
+            while (Stream.Position % align > 0)
+                WriteByte(0);
         }
 
         /// <summary>
@@ -268,6 +242,14 @@ namespace SoulsFormats
         /// Writes an array of one-byte unsigned integers.
         /// </summary>
         public void WriteBytes(byte[] bytes)
+        {
+            bw.Write(bytes);
+        }
+        
+        /// <summary>
+        /// Writes an array of one-byte unsigned integers.
+        /// </summary>
+        public void WriteBytes(ReadOnlySpan<byte> bytes)
         {
             bw.Write(bytes);
         }
@@ -686,6 +668,14 @@ namespace SoulsFormats
             bw.Write(bytes);
         }
 
+        private void WriteChars(string text, Encoding encoding, bool terminate, string terminator)
+        {
+            if (terminate)
+                text += terminator;
+            byte[] bytes = encoding.GetBytes(text);
+            bw.Write(bytes);
+        }
+
         /// <summary>
         /// Writes an ASCII string, with null terminator if specified.
         /// </summary>
@@ -700,6 +690,14 @@ namespace SoulsFormats
         public void WriteShiftJIS(string text, bool terminate = false)
         {
             WriteChars(text, SFEncoding.ShiftJIS, terminate);
+        }
+
+        /// <summary>
+        /// Writes a UTF-8 string, with CR+LF terminator if specified.
+        /// </summary>
+        public void WriteUTF8(string text, bool terminate = false)
+        {
+            WriteChars(text, SFEncoding.UTF8, terminate, "\r\n");
         }
 
         /// <summary>
@@ -834,43 +832,6 @@ namespace SoulsFormats
             bw.Write(color.R);
             bw.Write(color.A);
         }
-        #endregion
-
-        #region IDisposable Support
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// <para>Verifies that all reservations are filled.</para>
-        /// </summary>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!IsDisposed)
-            {
-                if (disposing)
-                {
-                    bw.Dispose();
-                    steps.Clear();
-
-                    if (reservations.Count > 0)
-                    {
-                        throw new InvalidOperationException("Not all reservations filled: " + string.Join(", ", reservations.Keys));
-                    }
-                }
-
-                IsDisposed = true;
-            }
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// <para>Verifies that all reservations are filled.</para>
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-
         #endregion
     }
 }
