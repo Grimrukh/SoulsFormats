@@ -5,8 +5,13 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Paddings;
+using Org.BouncyCastle.Crypto.Parameters;
 using ZstdNet;
 
 namespace SoulsFormats
@@ -517,7 +522,7 @@ namespace SoulsFormats
             byte[] bytes = File.ReadAllBytes(path);
             if (BND4.IsRead(bytes, out BND4 bnd4)) 
                 return bnd4; 
-            bytes = DecryptByteArray(ds3RegulationKey, bytes);
+            bytes = DecryptByteArray_Aes(ds3RegulationKey, bytes);
             return BND4.Read(bytes);
         }
 
@@ -536,14 +541,35 @@ namespace SoulsFormats
 
         /// <summary>
         /// Decrypts and unpacks ER's regulation BND4 from the specified path.
+        ///
+        /// Updated to avoid allocating huge byte arrays; creates a temporary file instead.
         /// </summary>
         public static BND4 DecryptERRegulation(string path)
         {
-            byte[] bytes = File.ReadAllBytes(path);
-            if (BND4.IsRead(bytes, out BND4 bnd4)) 
-                return bnd4; 
-            bytes = DecryptByteArray(erRegulationKey, bytes);
-            return BND4.Read(bytes);
+            if (BND4.IsRead(path, out BND4 bnd4)) 
+                return bnd4;
+            
+            MemoryStream decrypted = DecryptFilePath(erRegulationKey, path);
+            
+            // Write `decrypted` to a temporary file on disk.
+            string tempPath = Path.GetTempFileName();
+            File.WriteAllBytes(tempPath, decrypted.ToArray());
+            try
+            {
+                return BND4.Read(tempPath);
+            }
+            finally
+            {
+                // Delete temp file.
+                try
+                {
+                    File.Delete(tempPath);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+            }
         }
 
         private static readonly byte[] ac6RegulationKey = ParseHexString("10 CE ED 47 7B 7C D9 D7 E6 93 8E 11 47 13 E7 87 D5 39 13 B1 D 31 8E C1 35 E4 BE 50 50 4E E 10");
@@ -556,7 +582,7 @@ namespace SoulsFormats
             byte[] bytes = File.ReadAllBytes(path);
             if (BND4.IsRead(bytes, out BND4 bnd4)) 
                 return bnd4; 
-            bytes = DecryptByteArray(ac6RegulationKey, bytes);
+            bytes = DecryptByteArray_Aes(ac6RegulationKey, bytes);
             return BND4.Read(bytes);
         }
 
@@ -607,7 +633,7 @@ namespace SoulsFormats
             return result;
         }
 
-        private static byte[] DecryptByteArray(byte[] key, byte[] secret)
+        private static byte[] DecryptByteArray_Aes(byte[] key, byte[] secret)
         {
             byte[] iv = new byte[16];
             byte[] encryptedContent = new byte[secret.Length - 16];
@@ -627,6 +653,60 @@ namespace SoulsFormats
                 cs.Write(encryptedContent, 0, encryptedContent.Length);
             }
             return ms.ToArray();
+        }
+        
+        /// <summary>
+        /// Decrypt a file from a path. Avoids allocating huge arrays, and instead uses streams.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="secretFilePath"></param>
+        /// <returns></returns>
+        public static MemoryStream DecryptFilePath(byte[] key, string secretFilePath)
+        {
+            Console.WriteLine("Decrypting byte array with BouncyCastle...");
+            
+            // Open the input file for reading
+            using FileStream inputFileStream = new(secretFilePath, FileMode.Open, FileAccess.Read);
+            
+            // Read IV (the first 16 bytes from the file)
+            byte[] iv = new byte[16];
+            int read = inputFileStream.Read(iv, 0, iv.Length);
+            if (read != iv.Length)
+                throw new Exception("Could not read IV from secret file.");
+
+            // Create an output memory stream to hold the decrypted data
+            MemoryStream outputStream = new();
+
+            // Set up AES cipher with CBC mode and no padding.
+            Console.WriteLine("Creating engine/cipher...");
+            IBlockCipher aesEngine = new AesEngine();
+            var cipher = new BufferedBlockCipher(new CbcBlockCipher(aesEngine));
+            cipher.Init(false, new ParametersWithIV(new KeyParameter(key), iv));
+
+            // Decrypt file data in chunks (after the IV)
+            byte[] inputBuffer = new byte[1024]; // Buffer for reading encrypted chunks
+            byte[] outputBuffer = new byte[cipher.GetOutputSize(inputBuffer.Length)];
+            int bytesRead;
+
+            Console.WriteLine("Decrypting chunks...");
+            while ((bytesRead = inputFileStream.Read(inputBuffer, 0, inputBuffer.Length)) > 0)
+            {
+                int outputLength = cipher.ProcessBytes(inputBuffer, 0, bytesRead, outputBuffer, 0);
+                outputStream.Write(outputBuffer, 0, outputLength);
+            }
+
+            // Finalize the decryption
+            Console.WriteLine("Finalizing decryption...");
+            byte[] finalBuffer = new byte[cipher.GetOutputSize(0)];
+            int finalLength = cipher.DoFinal(finalBuffer, 0);
+            Console.WriteLine("Final length: " + finalLength);
+            outputStream.Write(finalBuffer, 0, finalLength);
+
+            // Reset the output stream position to the beginning
+            outputStream.Position = 0;
+
+            Console.WriteLine("Returning decrypted stream...");
+            return outputStream;
         }
 
         /// <summary>

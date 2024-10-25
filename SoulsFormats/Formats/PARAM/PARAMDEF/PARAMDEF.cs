@@ -341,6 +341,21 @@ namespace SoulsFormats
             xml.Load(path);
             return XmlSerializer.Deserialize(xml, versionAware);
         }
+        
+        /// <summary>
+        /// Reads an XML-formatted PARAMDEF from a string.
+        /// </summary>
+        /// <param name="xmlString">The string of the PARAMDEF XML file</param>
+        /// <param name="versionAware">If versionAware is enabled and the PARAMDEFs support it, additional data will be
+        /// read such that the PARAMDEFs can be used on older regulations if the regulation version is known. Otherwise,
+        /// the PARAMDEFs will be read to support the latest supported regulation version only.</param>
+        /// <returns></returns>
+        public static PARAMDEF XmlDeserializeString(string xmlString, bool versionAware = false)
+        {
+            var xml = new XmlDocument();
+            xml.LoadXml(xmlString);
+            return XmlSerializer.Deserialize(xml, versionAware);
+        }
 
         /// <summary>
         /// Writes an XML-formatted PARAMDEF to a file using the current XML version.
