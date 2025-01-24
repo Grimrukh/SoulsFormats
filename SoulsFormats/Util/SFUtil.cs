@@ -663,8 +663,6 @@ namespace SoulsFormats
         /// <returns></returns>
         public static MemoryStream DecryptFilePath(byte[] key, string secretFilePath)
         {
-            Console.WriteLine("Decrypting byte array with BouncyCastle...");
-            
             // Open the input file for reading
             using FileStream inputFileStream = new(secretFilePath, FileMode.Open, FileAccess.Read);
             
@@ -678,7 +676,6 @@ namespace SoulsFormats
             MemoryStream outputStream = new();
 
             // Set up AES cipher with CBC mode and no padding.
-            Console.WriteLine("Creating engine/cipher...");
             IBlockCipher aesEngine = new AesEngine();
             var cipher = new BufferedBlockCipher(new CbcBlockCipher(aesEngine));
             cipher.Init(false, new ParametersWithIV(new KeyParameter(key), iv));
@@ -688,7 +685,6 @@ namespace SoulsFormats
             byte[] outputBuffer = new byte[cipher.GetOutputSize(inputBuffer.Length)];
             int bytesRead;
 
-            Console.WriteLine("Decrypting chunks...");
             while ((bytesRead = inputFileStream.Read(inputBuffer, 0, inputBuffer.Length)) > 0)
             {
                 int outputLength = cipher.ProcessBytes(inputBuffer, 0, bytesRead, outputBuffer, 0);
@@ -696,16 +692,13 @@ namespace SoulsFormats
             }
 
             // Finalize the decryption
-            Console.WriteLine("Finalizing decryption...");
             byte[] finalBuffer = new byte[cipher.GetOutputSize(0)];
             int finalLength = cipher.DoFinal(finalBuffer, 0);
-            Console.WriteLine("Final length: " + finalLength);
             outputStream.Write(finalBuffer, 0, finalLength);
 
             // Reset the output stream position to the beginning
             outputStream.Position = 0;
 
-            Console.WriteLine("Returning decrypted stream...");
             return outputStream;
         }
 
